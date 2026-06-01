@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seguridad en Aplicaciones Android — OWASP Mobile | Equipo 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --c-bg:#0b0f14;
+  --c-surface:#111820;
+  --c-surface2:#161e28;
+  --c-border:rgba(255,255,255,0.07);
+  --c-border2:rgba(255,255,255,0.12);
+  --c-text:#e8e4dc;
+  --c-muted:#7a8694;
+  --c-faint:#3a4450;
+  --c-green:#1fc98e;
+  --c-green-dim:rgba(31,201,142,0.12);
+  --c-green-border:rgba(31,201,142,0.25);
+  --c-blue:#4fa3e8;
+  --c-blue-dim:rgba(79,163,232,0.10);
+  --c-amber:#e8a84f;
+  --c-amber-dim:rgba(232,168,79,0.10);
+  --r-md:10px;--r-lg:16px;--r-xl:22px;
+}
+
+html{scroll-behavior:smooth}
+body{font-family:'Instrument Sans',sans-serif;background:var(--c-bg);color:var(--c-text);min-height:100vh;overflow-x:hidden}
+
+/* ── NOISE TEXTURE ── */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:0.4;
+}
+
+/* ── GLOW ORBS ── */
+.orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0;filter:blur(80px);opacity:0.18}
+.orb-1{width:500px;height:500px;background:radial-gradient(circle,#1fc98e,transparent 70%);top:-150px;right:-100px}
+.orb-2{width:400px;height:400px;background:radial-gradient(circle,#4fa3e8,transparent 70%);bottom:-100px;left:-80px}
+
+/* ── LAYOUT ── */
+.wrap{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:0 1.5rem}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  border-bottom:1px solid var(--c-border);
+  background:rgba(11,15,20,0.85);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.nav-inner{
+  max-width:860px;margin:0 auto;padding:0 1.5rem;
+  height:56px;display:flex;align-items:center;justify-content:space-between;
+}
+.nav-brand{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.05em;color:var(--c-text);text-decoration:none;opacity:0.8}
+.nav-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--c-green-dim);border:1px solid var(--c-green-border);
+  border-radius:99px;padding:5px 12px;
+  font-size:11px;font-weight:600;color:var(--c-green);letter-spacing:0.04em;text-transform:uppercase;
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--c-green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+
+/* ── HERO ── */
+.hero{padding:5rem 0 4rem}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:10px;
+  font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--c-muted);margin-bottom:1.5rem;
+}
+.hero-eyebrow::before{content:'';width:24px;height:1px;background:var(--c-faint)}
+.hero h1{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(28px,5vw,52px);
+  font-weight:800;line-height:1.1;
+  color:#fff;margin-bottom:1rem;
+  letter-spacing:-0.02em;
+}
+.hero h1 em{font-style:normal;color:var(--c-green)}
+.hero-desc{
+  font-size:16px;color:var(--c-muted);
+  max-width:520px;line-height:1.7;margin-bottom:2.5rem;
+}
+.hero-tags{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:3rem}
+.tag{
+  font-size:11px;font-weight:600;padding:5px 12px;border-radius:99px;letter-spacing:0.04em;
+  border:1px solid transparent;
+}
+.tag-g{background:var(--c-green-dim);color:var(--c-green);border-color:var(--c-green-border)}
+.tag-b{background:var(--c-blue-dim);color:var(--c-blue);border-color:rgba(79,163,232,0.25)}
+.tag-a{background:var(--c-amber-dim);color:var(--c-amber);border-color:rgba(232,168,79,0.25)}
+
+/* ── DIVIDER ── */
+.rule{border:none;border-top:1px solid var(--c-border);margin:0}
+
+/* ── SECTION ── */
+section{padding:3.5rem 0}
+.section-head{margin-bottom:2rem}
+.section-label{
+  font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--c-faint);margin-bottom:0.75rem;
+}
+.section-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:#fff;line-height:1.2}
+.section-sub{font-size:14px;color:var(--c-muted);margin-top:0.5rem;line-height:1.6}
+
+/* ── ABOUT CARDS ── */
+.about-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:600px){.about-grid{grid-template-columns:1fr}}
+.about-card{
+  background:var(--c-surface);
+  border:1px solid var(--c-border);
+  border-radius:var(--r-lg);
+  padding:1.5rem;
+  transition:border-color 0.2s;
+}
+.about-card:hover{border-color:var(--c-border2)}
+.about-card-icon{
+  width:40px;height:40px;border-radius:var(--r-md);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;margin-bottom:1rem;
+}
+.ic-g{background:var(--c-green-dim)}
+.ic-b{background:var(--c-blue-dim)}
+.ic-a{background:var(--c-amber-dim)}
+.about-card h3{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;margin-bottom:6px}
+.about-card p{font-size:13px;color:var(--c-muted);line-height:1.6}
+
+/* ── CTA ACCESO ── */
+.cta-block{
+  background:var(--c-surface);
+  border:1px solid var(--c-border);
+  border-radius:var(--r-xl);
+  padding:2.5rem;
+  display:flex;align-items:center;gap:2rem;flex-wrap:wrap;
+}
+.cta-text{flex:1;min-width:220px}
+.cta-text h3{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:#fff;margin-bottom:0.5rem}
+.cta-text p{font-size:14px;color:var(--c-muted);line-height:1.6}
+.cta-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:13px 24px;border-radius:var(--r-md);
+  background:var(--c-green);color:#071a12;
+  font-size:14px;font-weight:600;text-decoration:none;
+  transition:background 0.15s,transform 0.15s;
+  white-space:nowrap;flex-shrink:0;
+}
+.cta-btn:hover{background:#25e8a4;transform:translateY(-1px)}
+.cta-arrow{font-size:16px}
+
+/* ── TEAM ── */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.member{
+  background:var(--c-surface);
+  border:1px solid var(--c-border);
+  border-radius:var(--r-md);
+  padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+  transition:border-color 0.2s,background 0.2s;
+}
+.member:hover{border-color:var(--c-border2);background:var(--c-surface2)}
+.av{
+  width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:600;flex-shrink:0;
+}
+.av-g{background:var(--c-green-dim);color:var(--c-green);border:1px solid var(--c-green-border)}
+.av-b{background:var(--c-blue-dim);color:var(--c-blue);border:1px solid rgba(79,163,232,0.25)}
+.av-a{background:var(--c-amber-dim);color:var(--c-amber);border:1px solid rgba(232,168,79,0.25)}
+.member-info{min-width:0}
+.member-name{font-size:13px;font-weight:500;color:var(--c-text);line-height:1.3}
+.member-role{font-size:11px;color:var(--c-faint);margin-top:2px}
+
+/* ── FOOTER ── */
+footer{
+  border-top:1px solid var(--c-border);
+  padding:2rem 1.5rem;
+  text-align:center;
+}
+.footer-inner{max-width:860px;margin:0 auto}
+.footer-logo{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--c-faint);margin-bottom:0.5rem;letter-spacing:0.04em}
+.footer-copy{font-size:12px;color:var(--c-faint)}
+.footer-copy span{color:var(--c-green)}
+
+/* ── ANIMATIONS ── */
+.fade-up{opacity:0;transform:translateY(20px);transition:opacity 0.6s ease,transform 0.6s ease}
+.fade-up.visible{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-brand" href="#">OWASP Mobile · Equipo 3</a>
+    <div class="nav-pill"><div class="live-dot"></div>Infografía Digital</div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="wrap">
+  <section class="hero fade-up">
+    <div class="hero-eyebrow">Seguridad Móvil · 2025</div>
+    <h1>Seguridad en<br>Aplicaciones Android<br><em>con OWASP Mobile</em></h1>
+    <p class="hero-desc">Análisis de las principales vulnerabilidades en aplicaciones Android basado en los estándares OWASP Mobile Top 10, MASVS y MASTG.</p>
+    <div class="hero-tags">
+      <span class="tag tag-g">OWASP Mobile Top 10</span>
+      <span class="tag tag-b">MASVS / MASTG</span>
+      <span class="tag tag-a">Android Security</span>
+      <span class="tag tag-g">Secure Coding</span>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ABOUT -->
+  <section class="fade-up" style="animation-delay:0.1s">
+    <div class="section-head">
+      <div class="section-label">Contenido</div>
+      <h2 class="section-title">¿Qué cubre esta infografía?</h2>
+      <p class="section-sub">Un recorrido visual por los riesgos más críticos en el desarrollo móvil seguro.</p>
+    </div>
+    <div class="about-grid">
+      <div class="about-card">
+        <div class="about-card-icon ic-g">🛡️</div>
+        <h3>OWASP Top 10 Móvil</h3>
+        <p>Las diez vulnerabilidades más críticas en aplicaciones móviles y cómo impactan a Android.</p>
+      </div>
+      <div class="about-card">
+        <div class="about-card-icon ic-b">📋</div>
+        <h3>MASVS & MASTG</h3>
+        <p>Estándares de verificación de seguridad y guía de pruebas para aplicaciones móviles.</p>
+      </div>
+      <div class="about-card">
+        <div class="about-card-icon ic-a">🔐</div>
+        <h3>Controles y Mitigaciones</h3>
+        <p>Buenas prácticas de desarrollo seguro y controles recomendados por la comunidad OWASP.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ACCESO -->
+  <section class="fade-up" style="animation-delay:0.15s">
+    <div class="section-head">
+      <div class="section-label">Archivos</div>
+      <h2 class="section-title">Acceder a la infografía</h2>
+      <p class="section-sub">Los archivos completos están disponibles en nuestra carpeta compartida.</p>
+    </div>
+    <div class="cta-block">
+      <div class="cta-text">
+        <h3>Carpeta del Equipo 3</h3>
+        <p>Infografías en PDF, recursos del proyecto y materiales adicionales disponibles para visualización y descarga.</p>
+      </div>
+      <a class="cta-btn" href="https://te674-my.sharepoint.com/:f:/g/personal/2022150480556_tesjo_edu_mx/IgBNUlWjysU_SoRE2mtDRESRAaub8KJoXkhOOuoH5b7omeA?e=ZAJzHx" target="_blank" rel="noopener">
+        <span>Abrir carpeta</span>
+        <span class="cta-arrow">↗</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- TEAM -->
+  <section class="fade-up" style="animation-delay:0.2s">
+    <div class="section-head">
+      <div class="section-label">Integrantes</div>
+      <h2 class="section-title">Equipo 3</h2>
+    </div>
+    <div class="team-grid">
+      <div class="member"><div class="av av-g">YC</div><div class="member-info"><div class="member-name">Yannet Carreola Sánchez</div><div class="member-role">Integrante</div></div></div>
+      <div class="member"><div class="av av-b">RD</div><div class="member-info"><div class="member-name">Ricardo Dionicio Catarino</div><div class="member-role">Integrante</div></div></div>
+      <div class="member"><div class="av av-a">EP</div><div class="member-info"><div class="member-name">Eduardo Pascual Vilchis</div><div class="member-role">Integrante</div></div></div>
+      <div class="member"><div class="av av-g">XL</div><div class="member-info"><div class="member-name">Ximena León Antonio</div><div class="member-role">Integrante</div></div></div>
+      <div class="member"><div class="av av-b">EJ</div><div class="member-info"><div class="member-name">Emmanuel Alexis Jiménez García</div><div class="member-role">Integrante</div></div></div>
+    </div>
+  </section>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">EQUIPO 3 · UNIVERSIDAD TESJO</div>
+    <div class="footer-copy">Seguridad en Aplicaciones Android con <span>OWASP Mobile</span> · 2025</div>
+  </div>
+</footer>
+
+<script>
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible') });
+}, {threshold:0.1});
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
